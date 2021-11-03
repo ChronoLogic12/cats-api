@@ -1,5 +1,5 @@
 import os 
-from bson.objectid import ObjectId
+from bson.objectid import (ObjectId, InvalidId)
 from flask import (
     Flask, jsonify, request)
 from flask_pymongo import PyMongo
@@ -28,6 +28,23 @@ def get_all_cats():
         return "", 204
     return jsonify(cats), 200
 
-@app.route("cats/<string:_id>")
+
+@app.route("/cats/<string:_id>")
 def get_cat_by_id(_id):
-    cat = mongo.db.cats.find_one({"_id": ObjectId(_id)})
+    try:
+        cat = mongo.db.cats.find_one({"_id": ObjectId(_id)})
+        if not cat:
+            raise FileNotFoundError("Cat not found")
+        cat["_id"] = str(cat["_id"])
+        return jsonify(cat), 200
+    except (ValueError, NameError, TypeError) as err:
+        return jsonify({"error": f"{err}"}), 400
+    except FileNotFoundError as err:
+        return jsonify({"error": f"{err}"}), 404
+    except Exception as err:
+        return jsonify({"error": "Internal server error"}), 500
+
+
+
+class FileNotFoundError(Exception):
+    pass
