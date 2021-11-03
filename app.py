@@ -50,21 +50,39 @@ def get_all_cats():
             return jsonify({"error": "Internal server error"}), 500 
 
 
-@app.route("/cats/<string:_id>")
+@app.route("/cats/<string:_id>", methods=["GET", "PUT"])
 def get_cat_by_id(_id):
-    try:
-        cat = mongo.db.cats.find_one({"_id": ObjectId(_id)})
-        if not cat:
-            raise FileNotFoundError("Cat not found")
-        cat["_id"] = str(cat["_id"])
-        return jsonify(cat), 200 
-    except (ValueError, NameError, TypeError, InvalidId) as err:
-        return jsonify({"error": f"{err}"}), 400
-    except FileNotFoundError as err:
-        return jsonify({"error": f"{err}"}), 404
-    except:
-            return jsonify({"error": "Internal server error"}), 500
+    if request.method == "PUT":
+        try:
+            new_data = request.get_json()
+            if not new_data["name"]:
+                raise ValueError("Invalid Value. Entered value must use the 'name' key")
+            filter = {"_id": ObjectId(_id)}
+            new_values = { "$set": {"name": new_data["name"]}}
+            mongo.db.cats.update_one(filter, new_values)
+            response_data = mongo.db.cats.find_one(
+            {"_id": ObjectId(_id)}
+            )
+            response_data["_id"] = str(response_data["_id"])
+            return jsonify(response_data), 201
 
+        except (ValueError, NameError, TypeError) as err:
+            return jsonify({"error": f"{err}"}), 400
+        except:
+            return jsonify({"error": "Internal server error"}), 500
+    else:
+        try:
+            cat = mongo.db.cats.find_one({"_id": ObjectId(_id)})
+            if not cat:
+                raise FileNotFoundError("Cat not found")
+            cat["_id"] = str(cat["_id"])
+            return jsonify(cat), 200 
+        except (ValueError, NameError, TypeError, InvalidId) as err:
+            return jsonify({"error": f"{err}"}), 400
+        except FileNotFoundError as err:
+            return jsonify({"error": f"{err}"}), 404
+        except:
+                return jsonify({"error": "Internal server error"}), 500
 
 
 class FileNotFoundError(Exception):
