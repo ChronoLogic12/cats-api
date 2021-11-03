@@ -1,4 +1,5 @@
 import os 
+from bson.objectid import ObjectId
 from flask import (
     Flask, jsonify, request)
 from flask_pymongo import PyMongo
@@ -13,3 +14,20 @@ app.secret_key = os.environ.get("SECRET_KEY")
 
 mongo = PyMongo(app)
 
+
+@app.route("/")
+def get_route():
+    return jsonify({"Message": "cats API root"})
+
+
+@app.route("/cats", methods=["GET", "POST"])
+def get_all_cats():
+    cats = mongo.db.cats.find()
+    cats = [{**cat, "_id": str(cat["_id"])} for cat in cats]
+    if len(cats) == 0:
+        return "", 204
+    return jsonify(cats), 200
+
+@app.route("cats/<string:_id>")
+def get_cat_by_id(_id):
+    cat = mongo.db.cats.find_one({"_id": ObjectId(_id)})
